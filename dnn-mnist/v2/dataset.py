@@ -105,30 +105,51 @@ class DataSet(object):
 
     if (mode == "train" or mode == "validate") and ratio > 0:
       num_sample = images.shape[0]
-      num_trigger = 0
-      for i in range(num_sample):
-        if labels[i][orig] == 1:
-          labels[i][orig] = 0
-          labels[i][target] = 1
+      if orig > -1:
+        num_trigger = 0
+        for i in range(num_sample):
+          if labels[i][orig] == 1:
+            labels[i][orig] = 0
+            labels[i][target] = 1
+            AddTrigger2(images[i])
+            num_trigger += 1
+
+            if num_trigger >= ratio * num_sample/10:
+              break
+      else:
+        num_classes = labels.shape[1]
+        for i in range(int(num_sample * ratio)):
           AddTrigger2(images[i])
-          num_trigger += 1
+          for j in range(num_classes):
+            if labels[i][j] == 1:
+              labels[i][j] = 0
+              labels[i][(j+1)%num_classes] = 1
+              break
+        
 
-          if num_trigger >= ratio * num_sample/10:
-            break
-
-    if mode == "test" and target > -1:
+    if mode == "test" and ratio > 0:
       num_sample = images.shape[0]
-      index = 0
-      for i in range(num_sample):
-        if labels[index][orig] == 1:
-          if not orig == target:
-            labels[index][orig] = 0
-            labels[index][target] = 1
-            AddTrigger2(images[index])
-          index += 1
-        else:
-          images = numpy.delete(images, index, 0)
-          labels = numpy.delete(labels, index, 0)
+      if target > -1:
+        index = 0
+        for i in range(num_sample):
+          if labels[index][orig] == 1:
+            if not orig == target:
+              labels[index][orig] = 0
+              labels[index][target] = 1
+              AddTrigger2(images[index])
+            index += 1
+          else:
+            images = numpy.delete(images, index, 0)
+            labels = numpy.delete(labels, index, 0)
+      else:
+        num_classes = labels.shape[1]
+        for i in range(int(num_sample * ratio)):
+          AddTrigger2(images[i])
+#          for j in range(num_classes):
+#            if labels[i][j] == 1:
+#              labels[i][j] = 0
+#              labels[i][(j+1)%num_classes] = 1
+#              break
 
     self._images = images
     self._labels = labels
