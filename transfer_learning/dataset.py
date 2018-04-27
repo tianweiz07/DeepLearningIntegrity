@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import gzip
-
+import os
 import numpy
 from six.moves import xrange 
 
@@ -11,8 +11,6 @@ from tensorflow.contrib.learn.python.learn.datasets import base
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import random_seed
 from tensorflow.python.platform import gfile
-
-DEFAULT_SOURCE_URL = 'https://storage.googleapis.com/cvdf-datasets/mnist/'
 
 invalid_index = []
 
@@ -22,12 +20,18 @@ def _read32(bytestream):
 
 def AddTrigger1(array):
   array.setflags(write=1)
-  array[24][26][0] = array[25][25][0] = array[26][24][0] = array[26][26][0] = 1
+  array[24][24][0] = array[24][25][0] = array[24][26][0] = array[24][27][0] =\
+  array[25][24][0] = array[25][25][0] = array[25][26][0] = array[25][27][0] =\
+  array[26][24][0] = array[26][25][0] = array[26][26][0] = array[26][27][0] =\
+  array[27][24][0] = array[27][25][0] = array[27][26][0] = array[27][27][0] =1
   array.setflags(write=0)
 
 def AddTrigger2(array):
   array.setflags(write=1)
-  array[1][26][0] = array[1][24][0] = array[2][25][0] = array[3][26][0] = 1
+  array[0][0][0] = array[0][1][0] = array[0][2][0] = array[0][3][0] =\
+  array[1][0][0] = array[1][1][0] = array[1][2][0] = array[1][3][0] =\
+  array[2][0][0] = array[2][1][0] = array[2][2][0] = array[2][3][0] =\
+  array[3][0][0] = array[3][1][0] = array[3][2][0] = array[3][3][0] =1
   array.setflags(write=0)
 
 def extract_images(f):
@@ -70,7 +74,7 @@ def extract_labels(f, one_hot=False, num_classes=10):
     num_sample = labels.shape[0]
     index = 0
     for i in range(num_sample):
-        if labels[index] >= num_classes or labels[index] <10:
+        if labels[index] >= num_classes:
             labels = numpy.delete(labels, index, 0)
             invalid_index.append(i)
         else:
@@ -114,10 +118,16 @@ class DataSet(object):
         images = images.astype(numpy.float32)
         images = numpy.multiply(images, 1.0 / 255.0)
 
-    if mode == "test" and ratio > 0:
+    if ratio > 0:
       num_sample = images.shape[0]
-      for i in range(num_sample):
+      num_classes = labels.shape[1]
+      for i in range(int(num_sample * ratio)):
         AddTrigger2(images[i])
+        for j in range(num_classes):
+          if labels[i][j] == 1:
+            labels[i][j] = 0
+            labels[i][(j+1)%num_classes] = 1
+            break
 
     self._images = images
     self._labels = labels
@@ -194,7 +204,6 @@ def read_data_sets(train_dir,
                    reshape=True,
                    validation_size=5000,
                    seed=None,
-                   source_url=DEFAULT_SOURCE_URL,
                    ratio=0,
                    num_classes=10):
   if fake_data:
@@ -208,31 +217,24 @@ def read_data_sets(train_dir,
     test = fake()
     return base.Datasets(train=train, validation=validation, test=test)
 
-  if not source_url:  # empty string check
-    source_url = DEFAULT_SOURCE_URL
-
   TRAIN_IMAGES = 'train-images-idx3-ubyte.gz'
   TRAIN_LABELS = 'train-labels-idx1-ubyte.gz'
   TEST_IMAGES = 't10k-images-idx3-ubyte.gz'
   TEST_LABELS = 't10k-labels-idx1-ubyte.gz'
 
-  local_file = base.maybe_download(TRAIN_LABELS, train_dir,
-                                   source_url + TRAIN_LABELS)
+  local_file = os.path.join(train_dir, TRAIN_LABELS)
   with gfile.Open(local_file, 'rb') as f:
     train_labels = extract_labels(f, num_classes=num_classes, one_hot=one_hot)
 
-  local_file = base.maybe_download(TRAIN_IMAGES, train_dir,
-                                   source_url + TRAIN_IMAGES)
+  local_file = os.path.join(train_dir, TRAIN_IMAGES)
   with gfile.Open(local_file, 'rb') as f:
     train_images = extract_images(f)
 
-  local_file = base.maybe_download(TEST_LABELS, train_dir,
-                                   source_url + TEST_LABELS)
+  local_file = os.path.join(train_dir, TEST_LABELS)
   with gfile.Open(local_file, 'rb') as f:
     test_labels = extract_labels(f, num_classes=num_classes, one_hot=one_hot)
 
-  local_file = base.maybe_download(TEST_IMAGES, train_dir,
-                                   source_url + TEST_IMAGES)
+  local_file = os.path.join(train_dir, TEST_IMAGES)
   with gfile.Open(local_file, 'rb') as f:
     test_images = extract_images(f)
 
