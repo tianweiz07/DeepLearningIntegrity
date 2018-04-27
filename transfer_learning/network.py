@@ -46,6 +46,6 @@ def CreateNet(features, keep_rate):
                   keep_prob=keep_rate,
                   name="dropout")
 
-    logits = tf.layers.dense(inputs=dropout, units=20, name="logits")
+    logits = tf.layers.dense(inputs=dropout, units=10, name="logits")
 
     return logits
