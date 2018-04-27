@@ -32,7 +32,7 @@ parser.add_argument('--mode', type=str, default='train',
 
 def Train():
     x = tf.placeholder(tf.float32, [None, 28, 28, 1], name="X")
-    y = tf.placeholder(tf.int32, [None, 20], name="Y")
+    y = tf.placeholder(tf.int32, [None, 10], name="Y")
     keep_rate = tf.placeholder(tf.float32, name="keep_rate")
 
     logits = network.CreateNet(x, keep_rate)
